@@ -3,6 +3,10 @@ import { launchBrowser, closeBrowser } from '../playwright/browserService.js';
 import { navigateToUrl } from '../playwright/navigationService.js';
 import { capturePageStructure } from './domParserService.js';
 import { mapInteractiveElements } from './interactionMapper.js';
+import { parseInstructions } from './geminiInstructionParser.js';
+import { generateTestPlan } from './testPlanGenerator.js';
+import { executeTestPlan } from '../playwright/testExecutor.js';
+import { attachErrorMonitor } from '../playwright/errorMonitor.js';
 
 export const createAnalysis = async ({ url, instructions, userId }) => {
   const analysis = await Analysis.create({
@@ -33,6 +37,8 @@ const runAnalysis = async (analysis) => {
     browser = b;
     console.log(`[QAmatic] Browser iniciado para análise ${analysis._id}`);
 
+    const { getErrors } = attachErrorMonitor(page);
+
     const navResult = await navigateToUrl(page, analysis.url);
     console.log(`[QAmatic] Página carregada: ${navResult.title} (${navResult.status})`);
 
@@ -42,11 +48,32 @@ const runAnalysis = async (analysis) => {
     const interactiveMap = mapInteractiveElements(domStructure);
     console.log(`[QAmatic] Elementos interativos: ${interactiveMap.summary.totalInteractive} total`);
 
-    // TODO: enviar domStructure + interactiveMap para o agente IA (Gemini)
+    const { objectives } = await parseInstructions(analysis.instructions);
+    console.log(`[QAmatic] ${objectives.length} objetivos de teste gerados`);
+
+    const { testPlan } = await generateTestPlan(objectives, interactiveMap);
+    console.log(`[QAmatic] Plano de testes gerado: ${testPlan.length} casos de teste`);
+
+    console.log(`[QAmatic] Executando testes...`);
+    const execution = await executeTestPlan(page, testPlan, analysis.url);
+    console.log(`[QAmatic] Execução finalizada: ${execution.summary.passed}/${execution.summary.total} passaram`);
+
+    const monitoredErrors = getErrors();
+    if (monitoredErrors.summary.total > 0) {
+      console.log(`[QAmatic] Erros detectados: ${monitoredErrors.summary.totalJsErrors} JS, ${monitoredErrors.summary.totalConsoleErrors} console, ${monitoredErrors.summary.totalRequestFailures} requests`);
+    }
 
     await analysis.updateOne({
       status: 'completed',
-      result: { navigation: navResult, domStructure, interactiveMap },
+      result: {
+        navigation: navResult,
+        domStructure,
+        interactiveMap,
+        objectives,
+        testPlan,
+        execution,
+        monitoredErrors,
+      },
     });
     console.log(`[QAmatic] Análise ${analysis._id} concluída`);
   } catch (err) {

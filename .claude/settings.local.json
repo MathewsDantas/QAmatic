@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm view zustand version)"
+      "Bash(npm view zustand version)",
+      "Bash(node -e \"import pw from ''playwright''; console.log\\(''playwright ok''\\);\")",
+      "Bash(node -e \":*)"
     ]
   }
 }
