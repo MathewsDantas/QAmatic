@@ -1,3 +1,6 @@
+import AnalysisLog from '../models/AnalysisLog.js';
+import { captureScreenshot, capturePageState } from './evidenceService.js';
+
 const STEP_TIMEOUT = 10000;
 
 const executeStep = async (page, step) => {
@@ -39,6 +42,8 @@ const executeStep = async (page, step) => {
         return {
           order: step.order,
           action: step.action,
+          selector: step.selector,
+          value: step.value,
           description: step.description,
           status: passed ? 'passed' : 'failed',
           expected: step.value,
@@ -51,9 +56,11 @@ const executeStep = async (page, step) => {
         return {
           order: step.order,
           action: step.action,
+          selector: step.selector,
+          value: step.value,
           description: step.description,
           status: 'skipped',
-          message: `Ação desconhecida: ${step.action}`,
+          error: `Ação desconhecida: ${step.action}`,
           duration: 0,
         };
     }
@@ -61,6 +68,8 @@ const executeStep = async (page, step) => {
     return {
       order: step.order,
       action: step.action,
+      selector: step.selector,
+      value: step.value,
       description: step.description,
       status: 'passed',
       duration: Date.now() - startTime,
@@ -69,6 +78,8 @@ const executeStep = async (page, step) => {
     return {
       order: step.order,
       action: step.action,
+      selector: step.selector,
+      value: step.value,
       description: step.description,
       status: 'failed',
       error: err.message,
@@ -77,21 +88,59 @@ const executeStep = async (page, step) => {
   }
 };
 
-export const executeTestCase = async (page, testCase) => {
+const saveLog = async (analysisId, testCase, stepResult, screenshot, pageUrl) => {
+  try {
+    await AnalysisLog.create({
+      analysisId,
+      testCaseId: testCase.id,
+      testCaseName: testCase.name,
+      stepOrder: stepResult.order,
+      action: stepResult.action,
+      selector: stepResult.selector || null,
+      value: stepResult.value || null,
+      description: stepResult.description,
+      status: stepResult.status,
+      error: stepResult.error || null,
+      duration: stepResult.duration,
+      screenshot,
+      pageUrl,
+    });
+  } catch (err) {
+    console.error(`[QAmatic] Erro ao salvar log:`, err.message);
+  }
+};
+
+export const executeTestCase = async (page, testCase, analysisId) => {
   const results = [];
 
   for (const step of testCase.steps) {
     const result = await executeStep(page, step);
+
+    // Aguarda a página estabilizar antes do screenshot
+    let screenshot = null;
+    let pageUrl = null;
+    try {
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await page.waitForTimeout(800);
+
+      screenshot = await captureScreenshot(page, analysisId, testCase.id, step.order);
+      const state = await capturePageState(page);
+      pageUrl = state.url;
+    } catch {
+      // screenshot pode falhar se o browser já fechou
+    }
+
+    result.screenshot = screenshot;
     results.push(result);
 
-    // Se um step falha (exceto assert), para a execução do caso
+    await saveLog(analysisId, testCase, result, screenshot, pageUrl);
+
     if (result.status === 'failed' && step.action !== 'assert') {
       break;
     }
   }
 
   const passed = results.every((r) => r.status === 'passed');
-  const failed = results.filter((r) => r.status === 'failed').length;
 
   return {
     id: testCase.id,
@@ -102,20 +151,19 @@ export const executeTestCase = async (page, testCase) => {
     summary: {
       total: results.length,
       passed: results.filter((r) => r.status === 'passed').length,
-      failed,
+      failed: results.filter((r) => r.status === 'failed').length,
       skipped: results.filter((r) => r.status === 'skipped').length,
     },
   };
 };
 
-export const executeTestPlan = async (page, testPlan, url) => {
+export const executeTestPlan = async (page, testPlan, url, analysisId) => {
   const results = [];
 
   for (const testCase of testPlan) {
-    // Navega de volta à URL original antes de cada caso de teste
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    const result = await executeTestCase(page, testCase);
+    const result = await executeTestCase(page, testCase, analysisId);
     results.push(result);
     console.log(`[QAmatic]   ${result.status === 'passed' ? '✓' : '✗'} ${result.name}`);
   }

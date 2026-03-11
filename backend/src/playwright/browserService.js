@@ -1,7 +1,12 @@
 import { chromium } from 'playwright';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 export const launchBrowser = async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: !isDev,
+    slowMo: isDev ? 300 : 0,
+  });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     userAgent:

@@ -10,6 +10,9 @@ node_modules/
 playwright-report/
 test-results/
 
+# Screenshots (evidências de teste)
+screenshots/
+
 # IDE
 .vscode/
 .idea/

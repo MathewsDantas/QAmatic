@@ -55,7 +55,7 @@ const runAnalysis = async (analysis) => {
     console.log(`[QAmatic] Plano de testes gerado: ${testPlan.length} casos de teste`);
 
     console.log(`[QAmatic] Executando testes...`);
-    const execution = await executeTestPlan(page, testPlan, analysis.url);
+    const execution = await executeTestPlan(page, testPlan, analysis.url, analysis._id);
     console.log(`[QAmatic] Execução finalizada: ${execution.summary.passed}/${execution.summary.total} passaram`);
 
     const monitoredErrors = getErrors();
