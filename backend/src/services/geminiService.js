@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { instructionParserPrompt, testPlanPrompt } from './prompts.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -45,4 +46,12 @@ export const generateJSON = async (prompt) => {
   }
 
   throw new Error(`Falha ao processar resposta da IA após ${MAX_RETRIES} tentativas: ${lastError.message}`);
+};
+
+export const parseInstructions = async (instructions) => {
+  return await generateJSON(instructionParserPrompt(instructions));
+};
+
+export const generateTestPlan = async (objectives, interactiveMap) => {
+  return await generateJSON(testPlanPrompt(objectives, interactiveMap));
 };

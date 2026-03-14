@@ -3,8 +3,7 @@ import { launchBrowser, closeBrowser } from '../playwright/browserService.js';
 import { navigateToUrl } from '../playwright/navigationService.js';
 import { capturePageStructure } from './domParserService.js';
 import { mapInteractiveElements } from './interactionMapper.js';
-import { parseInstructions } from './geminiInstructionParser.js';
-import { generateTestPlan } from './testPlanGenerator.js';
+import { parseInstructions, generateTestPlan } from './geminiService.js';
 import { executeTestPlan } from '../playwright/testExecutor.js';
 import { attachErrorMonitor } from '../playwright/errorMonitor.js';
 
