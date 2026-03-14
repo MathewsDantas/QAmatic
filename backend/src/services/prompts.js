@@ -71,3 +71,49 @@ Regras:
 - Exemplos corretos: "type:visible", "type:contains|Tradutor", "type:url_contains|search?q=teste"
 - Ordene os steps pela sequência lógica de execução
 - Retorne APENAS o JSON, sem explicações`;
+
+export const resultsAnalysisPrompt = (consolidatedResults) =>
+  `Você é um especialista em QA e análise de qualidade de software. Analise os resultados consolidados da execução de testes automatizados e gere um relatório de análise.
+
+Resultados consolidados da execução:
+${JSON.stringify(consolidatedResults, null, 2)}
+
+Analise os resultados e identifique:
+1. Problemas encontrados (baseado em falhas de teste, erros de JS, erros de console e falhas de requisição)
+2. O impacto de cada problema na qualidade da aplicação e experiência do usuário
+3. Sugestões concretas de melhoria para cada problema
+
+Retorne um JSON com a seguinte estrutura:
+{
+  "overallStatus": "approved | rejected | needs_attention",
+  "overallScore": 85,
+  "summary": "Resumo geral da qualidade da aplicação em 2-3 frases",
+  "findings": [
+    {
+      "id": 1,
+      "problema": "Descrição clara e objetiva do problema encontrado",
+      "impacto": "Descrição do impacto na aplicação e no usuário",
+      "sugestao": "Sugestão concreta de como resolver o problema",
+      "severidade": "critica | alta | media | baixa",
+      "evidencia": "nome_do_screenshot.png ou null se não houver screenshot relacionado",
+      "testCaseId": 1,
+      "stepOrder": 3
+    }
+  ],
+  "statistics": {
+    "totalProblems": 3,
+    "critical": 1,
+    "high": 1,
+    "medium": 1,
+    "low": 0
+  }
+}
+
+Regras:
+- "overallStatus": use "approved" se todos os testes passaram e não há erros críticos, "rejected" se há falhas críticas, "needs_attention" para casos intermediários
+- "overallScore": nota de 0 a 100 baseada na taxa de sucesso e gravidade dos problemas
+- "severidade": use "critica" para falhas que impedem funcionalidades principais, "alta" para problemas que afetam significativamente o usuário, "media" para problemas menores de UX, "baixa" para melhorias cosméticas
+- "evidencia": referencie o nome do arquivo de screenshot dos resultados quando relevante, caso contrário use null
+- Cada finding deve estar associado a um testCaseId e stepOrder quando aplicável (use null se for um erro de monitoramento geral)
+- Se não houver problemas, retorne findings como array vazio e overallStatus como "approved"
+- Retorne APENAS o JSON, sem explicações`;

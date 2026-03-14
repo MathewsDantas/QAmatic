@@ -3,7 +3,8 @@ import { launchBrowser, closeBrowser } from '../playwright/browserService.js';
 import { navigateToUrl } from '../playwright/navigationService.js';
 import { capturePageStructure } from './domParserService.js';
 import { mapInteractiveElements } from './interactionMapper.js';
-import { parseInstructions, generateTestPlan } from './geminiService.js';
+import { parseInstructions, generateTestPlan, analyzeResults } from './geminiService.js';
+import { consolidateResults } from './resultConsolidator.js';
 import { executeTestPlan } from '../playwright/testExecutor.js';
 import { attachErrorMonitor } from '../playwright/errorMonitor.js';
 
@@ -62,6 +63,12 @@ const runAnalysis = async (analysis) => {
       console.log(`[QAmatic] Erros detectados: ${monitoredErrors.summary.totalJsErrors} JS, ${monitoredErrors.summary.totalConsoleErrors} console, ${monitoredErrors.summary.totalRequestFailures} requests`);
     }
 
+    const consolidated = consolidateResults(execution, monitoredErrors, testPlan);
+    console.log(`[QAmatic] Resultados consolidados: ${consolidated.errors.totalErrors} erros, ${consolidated.evidence.length} evidências`);
+
+    const aiAnalysis = await analyzeResults(consolidated);
+    console.log(`[QAmatic] Análise IA concluída: ${aiAnalysis.overallStatus} (score: ${aiAnalysis.overallScore})`);
+
     await analysis.updateOne({
       status: 'completed',
       result: {
@@ -72,6 +79,8 @@ const runAnalysis = async (analysis) => {
         testPlan,
         execution,
         monitoredErrors,
+        consolidated,
+        aiAnalysis,
       },
     });
     console.log(`[QAmatic] Análise ${analysis._id} concluída`);

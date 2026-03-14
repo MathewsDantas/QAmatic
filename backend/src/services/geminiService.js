@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { instructionParserPrompt, testPlanPrompt } from './prompts.js';
+import { instructionParserPrompt, testPlanPrompt, resultsAnalysisPrompt } from './prompts.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -54,4 +54,8 @@ export const parseInstructions = async (instructions) => {
 
 export const generateTestPlan = async (objectives, interactiveMap) => {
   return await generateJSON(testPlanPrompt(objectives, interactiveMap));
+};
+
+export const analyzeResults = async (consolidatedResults) => {
+  return await generateJSON(resultsAnalysisPrompt(consolidatedResults));
 };
