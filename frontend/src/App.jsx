@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Analysis from './pages/Analysis';
+import Report from './pages/Report';
 import PrivateRoute from './components/PrivateRoute';
 import GuestRoute from './components/GuestRoute';
 import AppLayout from './components/AppLayout';
@@ -43,6 +44,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Analysis />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/report/:id"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Report />
                 </AppLayout>
               </PrivateRoute>
             }

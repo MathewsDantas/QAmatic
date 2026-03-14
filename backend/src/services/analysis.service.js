@@ -27,47 +27,88 @@ export const createAnalysis = async ({ url, instructions, userId }) => {
   };
 };
 
+const wrapStep = async (stepName, fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    const isTimeout = err.message?.includes('Timeout') || err.message?.includes('timeout');
+    const prefix = isTimeout
+      ? `Timeout em "${stepName}"`
+      : `Falha em "${stepName}"`;
+    const wrapped = new Error(`${prefix}: ${err.message}`);
+    wrapped.step = stepName;
+    throw wrapped;
+  }
+};
+
 const runAnalysis = async (analysis) => {
   let browser = null;
 
   try {
     console.log(`[QAmatic] Iniciando análise ${analysis._id}...`);
 
-    const { browser: b, page } = await launchBrowser();
+    const { browser: b, page } = await wrapStep('Iniciar navegador', async () => {
+      const result = await launchBrowser();
+      console.log(`[QAmatic] Browser iniciado para análise ${analysis._id}`);
+      return result;
+    });
     browser = b;
-    console.log(`[QAmatic] Browser iniciado para análise ${analysis._id}`);
 
     const { getErrors } = attachErrorMonitor(page);
 
-    const navResult = await navigateToUrl(page, analysis.url);
-    console.log(`[QAmatic] Página carregada: ${navResult.title} (${navResult.status})`);
+    const navResult = await wrapStep('Acessar URL', async () => {
+      const result = await navigateToUrl(page, analysis.url);
+      console.log(`[QAmatic] Página carregada: ${result.title} (${result.status})`);
+      return result;
+    });
 
-    const domStructure = await capturePageStructure(page);
-    console.log(`[QAmatic] DOM capturado: ${domStructure.buttons.length} botões, ${domStructure.links.length} links, ${domStructure.inputs.length} inputs, ${domStructure.forms.length} formulários`);
+    const domStructure = await wrapStep('Capturar estrutura da página', async () => {
+      const result = await capturePageStructure(page);
+      console.log(`[QAmatic] DOM capturado: ${result.buttons.length} botões, ${result.links.length} links, ${result.inputs.length} inputs, ${result.forms.length} formulários`);
+      return result;
+    });
 
-    const interactiveMap = mapInteractiveElements(domStructure);
-    console.log(`[QAmatic] Elementos interativos: ${interactiveMap.summary.totalInteractive} total`);
+    const interactiveMap = await wrapStep('Mapear elementos interativos', () => {
+      const result = mapInteractiveElements(domStructure);
+      console.log(`[QAmatic] Elementos interativos: ${result.summary.totalInteractive} total`);
+      return result;
+    });
 
-    const { objectives } = await parseInstructions(analysis.instructions);
-    console.log(`[QAmatic] ${objectives.length} objetivos de teste gerados`);
+    const { objectives } = await wrapStep('Interpretar instruções com IA', async () => {
+      const result = await parseInstructions(analysis.instructions);
+      console.log(`[QAmatic] ${result.objectives.length} objetivos de teste gerados`);
+      return result;
+    });
 
-    const { testPlan } = await generateTestPlan(objectives, interactiveMap);
-    console.log(`[QAmatic] Plano de testes gerado: ${testPlan.length} casos de teste`);
+    const { testPlan } = await wrapStep('Gerar plano de testes com IA', async () => {
+      const result = await generateTestPlan(objectives, interactiveMap);
+      console.log(`[QAmatic] Plano de testes gerado: ${result.testPlan.length} casos de teste`);
+      return result;
+    });
 
-    console.log(`[QAmatic] Executando testes...`);
-    const execution = await executeTestPlan(page, testPlan, analysis.url, analysis._id);
-    console.log(`[QAmatic] Execução finalizada: ${execution.summary.passed}/${execution.summary.total} passaram`);
+    const execution = await wrapStep('Executar testes', async () => {
+      console.log(`[QAmatic] Executando testes...`);
+      const result = await executeTestPlan(page, testPlan, analysis.url, analysis._id);
+      console.log(`[QAmatic] Execução finalizada: ${result.summary.passed}/${result.summary.total} passaram`);
+      return result;
+    });
 
     const monitoredErrors = getErrors();
     if (monitoredErrors.summary.total > 0) {
       console.log(`[QAmatic] Erros detectados: ${monitoredErrors.summary.totalJsErrors} JS, ${monitoredErrors.summary.totalConsoleErrors} console, ${monitoredErrors.summary.totalRequestFailures} requests`);
     }
 
-    const consolidated = consolidateResults(execution, monitoredErrors, testPlan);
-    console.log(`[QAmatic] Resultados consolidados: ${consolidated.errors.totalErrors} erros, ${consolidated.evidence.length} evidências`);
+    const consolidated = await wrapStep('Consolidar resultados', () => {
+      const result = consolidateResults(execution, monitoredErrors, testPlan);
+      console.log(`[QAmatic] Resultados consolidados: ${result.errors.totalErrors} erros, ${result.evidence.length} evidências`);
+      return result;
+    });
 
-    const aiAnalysis = await analyzeResults(consolidated);
-    console.log(`[QAmatic] Análise IA concluída: ${aiAnalysis.overallStatus} (score: ${aiAnalysis.overallScore})`);
+    const aiAnalysis = await wrapStep('Analisar resultados com IA', async () => {
+      const result = await analyzeResults(consolidated);
+      console.log(`[QAmatic] Análise IA concluída: ${result.overallStatus} (score: ${result.overallScore})`);
+      return result;
+    });
 
     await analysis.updateOne({
       status: 'completed',
@@ -85,7 +126,7 @@ const runAnalysis = async (analysis) => {
     });
     console.log(`[QAmatic] Análise ${analysis._id} concluída`);
   } catch (err) {
-    console.error(`[QAmatic] Erro na análise ${analysis._id}:`, err.message);
+    console.error(`[QAmatic] Erro na análise ${analysis._id} [${err.step || 'desconhecido'}]:`, err.message);
     await analysis.updateOne({
       status: 'error',
       errorMessage: err.message,
