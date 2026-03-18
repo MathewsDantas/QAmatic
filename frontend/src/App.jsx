@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { ConfigProvider, Spin } from 'antd';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import antdTheme from './theme/antdTheme';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Analysis from './pages/Analysis';
 import Report from './pages/Report';
+import Dashboard from './pages/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import GuestRoute from './components/GuestRoute';
 import AppLayout from './components/AppLayout';
@@ -27,13 +29,7 @@ function App() {
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#1677ff',
-        },
-      }}
-    >
+    <ConfigProvider theme={antdTheme}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
@@ -44,6 +40,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Analysis />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Dashboard />
                 </AppLayout>
               </PrivateRoute>
             }

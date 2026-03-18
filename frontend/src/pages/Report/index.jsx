@@ -1,12 +1,34 @@
 import { Typography, Spin, Alert, Button, Flex, Empty } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeft, ListChecks, AlertTriangle, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useReport from './useReport';
+import PageContainer from '../../components/PageContainer';
 import ReportHeader from './components/ReportHeader';
 import TestSummary from './components/TestSummary';
+import TestExecutionList from './components/TestExecutionList';
 import FindingCard from './components/FindingCard';
+import EvidenceGallery from './components/EvidenceGallery';
 
 const { Title } = Typography;
+
+const SectionTitle = ({ icon: Icon, iconColor, children }) => (
+  <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
+    <Flex
+      align="center"
+      justify="center"
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        backgroundColor: `${iconColor}14`,
+        flexShrink: 0,
+      }}
+    >
+      <Icon size={16} color={iconColor} />
+    </Flex>
+    <Title level={4} style={{ margin: 0 }}>{children}</Title>
+  </Flex>
+);
 
 const Report = () => {
   const { report, loading, error } = useReport();
@@ -22,67 +44,80 @@ const Report = () => {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 720, margin: '48px auto', padding: '0 16px' }}>
+      <PageContainer maxWidth={720}>
         <Alert type="error" message="Erro" description={error} showIcon />
-        <Button style={{ marginTop: 16 }} onClick={() => navigate('/')}>
+        <Button style={{ marginTop: 16 }} onClick={() => navigate('/dashboard')}>
           Voltar
         </Button>
-      </div>
+      </PageContainer>
     );
   }
 
   if (report.status === 'analyzing') {
     return (
-      <div style={{ maxWidth: 720, margin: '48px auto', padding: '0 16px' }}>
+      <PageContainer maxWidth={720}>
         <Alert
           type="info"
           message="Análise em andamento"
           description="A análise ainda está sendo executada. Aguarde..."
           showIcon
         />
-        <Button style={{ marginTop: 16 }} onClick={() => navigate('/')}>
+        <Button style={{ marginTop: 16 }} onClick={() => navigate('/dashboard')}>
           Voltar
         </Button>
-      </div>
+      </PageContainer>
     );
   }
 
   if (report.status === 'error') {
     return (
-      <div style={{ maxWidth: 720, margin: '48px auto', padding: '0 16px' }}>
+      <PageContainer maxWidth={720}>
         <Alert
           type="error"
           message="Erro na análise"
           description={report.errorMessage || 'Ocorreu um erro durante a execução.'}
           showIcon
         />
-        <Button style={{ marginTop: 16 }} onClick={() => navigate('/')}>
-          Nova análise
+        <Button style={{ marginTop: 16 }} onClick={() => navigate('/dashboard')}>
+          Voltar
         </Button>
-      </div>
+      </PageContainer>
     );
   }
 
-  const { consolidated, aiAnalysis } = report.result;
+  const { consolidated, aiAnalysis, execution } = report.result;
 
   return (
-    <div style={{ maxWidth: 800, margin: '32px auto', padding: '0 16px 48px' }}>
+    <PageContainer maxWidth={960}>
       <Button
         type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/')}
+        icon={<ArrowLeft size={16} />}
+        onClick={() => navigate('/dashboard')}
         style={{ marginBottom: 16 }}
       >
-        Nova análise
+        Voltar para análises
       </Button>
 
-      <Flex vertical gap="large">
-        <ReportHeader aiAnalysis={aiAnalysis} consolidated={consolidated} />
+      <Flex vertical gap={32}>
+        <ReportHeader
+          aiAnalysis={aiAnalysis}
+          consolidated={consolidated}
+          url={report.url}
+        />
 
         <TestSummary consolidated={consolidated} />
 
         <div>
-          <Title level={4}>Problemas Encontrados</Title>
+          <SectionTitle icon={ListChecks} iconColor="#2563EB">
+            Execução dos Testes
+          </SectionTitle>
+          <TestExecutionList execution={execution} />
+        </div>
+
+        <div>
+          <SectionTitle icon={AlertTriangle} iconColor="#F59E0B">
+            Problemas Encontrados
+          </SectionTitle>
           {aiAnalysis.findings.length === 0 ? (
             <Empty description="Nenhum problema encontrado" />
           ) : (
@@ -93,8 +128,15 @@ const Report = () => {
             </Flex>
           )}
         </div>
+
+        <div>
+          <SectionTitle icon={Camera} iconColor="#7C3AED">
+            Evidências
+          </SectionTitle>
+          <EvidenceGallery consolidated={consolidated} />
+        </div>
       </Flex>
-    </div>
+    </PageContainer>
   );
 };
 

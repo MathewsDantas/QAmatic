@@ -1,4 +1,5 @@
 import { Input, Typography } from 'antd';
+import { Globe } from 'lucide-react';
 
 const { Text } = Typography;
 
@@ -11,6 +12,7 @@ const UrlInput = ({ url, error, onUrlChange }) => {
         value={url}
         onChange={onUrlChange}
         status={error ? 'error' : ''}
+        prefix={<Globe size={16} color="#9CA3AF" />}
         allowClear
       />
       {error && (

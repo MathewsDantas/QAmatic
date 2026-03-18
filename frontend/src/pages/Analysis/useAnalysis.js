@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { notification } from 'antd';
 import useAnalysisStore from '../../store/useAnalysisStore';
 import useLoadingStore from '../../store/useLoadingStore';
+import useHistoryStore from '../../store/useHistoryStore';
 import {
   startAnalysis as startAnalysisApi,
   getAnalysis as getAnalysisApi,
@@ -21,6 +22,8 @@ const useAnalysis = () => {
   const { status, analysis, startAnalysis, completeAnalysis, failAnalysis, reset } =
     useAnalysisStore();
   const isLoading = useLoadingStore((state) => state.isLoading);
+  const addHistoryEntry = useHistoryStore((state) => state.addEntry);
+  const updateHistoryEntry = useHistoryStore((state) => state.updateEntry);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -40,6 +43,14 @@ const useAnalysis = () => {
           if (data.status === 'completed') {
             stopPolling();
             completeAnalysis(data);
+            const ai = data.result?.aiAnalysis;
+            updateHistoryEntry(analysisId, {
+              status: 'completed',
+              overallScore: ai?.overallScore ?? null,
+              overallStatus: ai?.overallStatus ?? null,
+              findingsCount: ai?.findings?.length ?? 0,
+              summary: ai?.summary ?? null,
+            });
             notification.success({
               message: 'Análise concluída',
               description: 'O relatório está pronto para visualização.',
@@ -48,6 +59,7 @@ const useAnalysis = () => {
           } else if (data.status === 'error') {
             stopPolling();
             failAnalysis(data.errorMessage);
+            updateHistoryEntry(analysisId, { status: 'error' });
             notification.error({
               message: 'Erro na análise',
               description: data.errorMessage || 'Ocorreu um erro durante a análise.',
@@ -58,7 +70,7 @@ const useAnalysis = () => {
         }
       }, POLL_INTERVAL);
     },
-    [stopPolling, completeAnalysis, failAnalysis, navigate],
+    [stopPolling, completeAnalysis, failAnalysis, updateHistoryEntry, navigate],
   );
 
   useEffect(() => {
@@ -109,15 +121,23 @@ const useAnalysis = () => {
         url: url.trim(),
         instructions: instructions.trim(),
       });
+      const analysisData = response.data;
+      addHistoryEntry({
+        id: analysisData.id,
+        url: url.trim(),
+        instructions: instructions.trim(),
+        status: 'analyzing',
+        createdAt: analysisData.createdAt,
+      });
       notification.info({
         message: 'Análise iniciada',
         description: 'Aguarde enquanto os testes são executados...',
       });
-      startPolling(response.data.id);
+      startPolling(analysisData.id);
     } catch {
       failAnalysis();
     }
-  }, [url, instructions, validateUrl, validateInstructions, startAnalysis, failAnalysis, startPolling]);
+  }, [url, instructions, validateUrl, validateInstructions, startAnalysis, failAnalysis, addHistoryEntry, startPolling]);
 
   const handleReset = useCallback(() => {
     stopPolling();

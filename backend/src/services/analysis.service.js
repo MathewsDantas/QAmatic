@@ -145,3 +145,64 @@ export const getAnalysisById = async (id, userId) => {
   }
   return analysis;
 };
+
+export const getUserAnalyses = async (userId, { page = 1, limit = 10 }) => {
+  const skip = (page - 1) * limit;
+
+  const [analyses, total] = await Promise.all([
+    Analysis.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select('url instructions status createdAt errorMessage result.aiAnalysis.overallScore result.aiAnalysis.overallStatus result.aiAnalysis.summary result.aiAnalysis.findings')
+      .lean(),
+    Analysis.countDocuments({ userId }),
+  ]);
+
+  const data = analyses.map((a) => ({
+    id: a._id,
+    url: a.url,
+    instructions: a.instructions,
+    status: a.status,
+    createdAt: a.createdAt,
+    errorMessage: a.errorMessage,
+    overallScore: a.result?.aiAnalysis?.overallScore ?? null,
+    overallStatus: a.result?.aiAnalysis?.overallStatus ?? null,
+    summary: a.result?.aiAnalysis?.summary ?? null,
+    findingsCount: a.result?.aiAnalysis?.findings?.length ?? 0,
+  }));
+
+  return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+export const getUserStats = async (userId) => {
+  const [stats] = await Analysis.aggregate([
+    { $match: { userId: (await import('mongoose')).default.Types.ObjectId.createFromHexString(userId) } },
+    {
+      $facet: {
+        total: [{ $count: 'count' }],
+        completed: [
+          { $match: { status: 'completed' } },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              avgScore: { $avg: '$result.aiAnalysis.overallScore' },
+              totalFindings: { $sum: { $size: { $ifNull: ['$result.aiAnalysis.findings', []] } } },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  const total = stats.total[0]?.count || 0;
+  const completed = stats.completed[0] || { count: 0, avgScore: 0, totalFindings: 0 };
+
+  return {
+    totalAnalyses: total,
+    completedAnalyses: completed.count,
+    averageScore: Math.round(completed.avgScore || 0),
+    totalFindings: completed.totalFindings,
+  };
+};

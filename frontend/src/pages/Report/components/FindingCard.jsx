@@ -1,27 +1,56 @@
-import { Card, Tag, Typography, Image, Flex } from 'antd';
-import {
-  BugOutlined,
-  ThunderboltOutlined,
-  ToolOutlined,
-} from '@ant-design/icons';
+import { Card, Typography, Image, Flex } from 'antd';
+import { Bug, Zap, Wrench } from 'lucide-react';
+import SeverityTag from '../../../components/SeverityTag';
 
 const { Text, Paragraph } = Typography;
 
-const severityConfig = {
-  critica: { color: 'red', label: 'Crítica' },
-  alta: { color: 'orange', label: 'Alta' },
-  media: { color: 'gold', label: 'Média' },
-  baixa: { color: 'blue', label: 'Baixa' },
+const severityBorderColor = {
+  critica: '#EF4444',
+  alta: '#F97316',
+  media: '#F59E0B',
+  baixa: '#3B82F6',
 };
 
+const FindingSection = ({ icon: Icon, iconColor, label, children }) => (
+  <div>
+    <Flex align="center" gap={8} style={{ marginBottom: 4 }}>
+      <Flex
+        align="center"
+        justify="center"
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 4,
+          backgroundColor: `${iconColor}14`,
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={12} color={iconColor} />
+      </Flex>
+      <Text strong style={{ fontSize: 13 }}>{label}</Text>
+    </Flex>
+    <Paragraph style={{ margin: '0 0 0 30px', fontSize: 13, lineHeight: 1.6 }}>
+      {children}
+    </Paragraph>
+  </div>
+);
+
 const FindingCard = ({ finding }) => {
-  const severity = severityConfig[finding.severidade] || severityConfig.media;
+  const borderColor =
+    severityBorderColor[finding.severidade] || severityBorderColor.media;
 
   return (
-    <Card size="small">
-      <Flex vertical gap="small">
+    <Card
+      size="small"
+      style={{
+        borderLeft: `4px solid ${borderColor}`,
+        borderRadius: 8,
+      }}
+      styles={{ body: { padding: '16px 20px' } }}
+    >
+      <Flex vertical gap={12}>
         <Flex justify="space-between" align="center">
-          <Tag color={severity.color}>{severity.label}</Tag>
+          <SeverityTag severity={finding.severidade} />
           {finding.testCaseId && (
             <Text type="secondary" style={{ fontSize: 12 }}>
               TC#{finding.testCaseId} - Step {finding.stepOrder}
@@ -29,37 +58,27 @@ const FindingCard = ({ finding }) => {
           )}
         </Flex>
 
-        <div>
-          <Flex gap={4} align="baseline">
-            <BugOutlined style={{ color: '#ff4d4f' }} />
-            <Text strong>Problema</Text>
-          </Flex>
-          <Paragraph style={{ margin: '4px 0 0 18px' }}>{finding.problema}</Paragraph>
-        </div>
+        <FindingSection icon={Bug} iconColor="#EF4444" label="Problema">
+          {finding.problema}
+        </FindingSection>
 
-        <div>
-          <Flex gap={4} align="baseline">
-            <ThunderboltOutlined style={{ color: '#faad14' }} />
-            <Text strong>Impacto</Text>
-          </Flex>
-          <Paragraph style={{ margin: '4px 0 0 18px' }}>{finding.impacto}</Paragraph>
-        </div>
+        <FindingSection icon={Zap} iconColor="#F59E0B" label="Impacto">
+          {finding.impacto}
+        </FindingSection>
 
-        <div>
-          <Flex gap={4} align="baseline">
-            <ToolOutlined style={{ color: '#52c41a' }} />
-            <Text strong>Sugestão</Text>
-          </Flex>
-          <Paragraph style={{ margin: '4px 0 0 18px' }}>{finding.sugestao}</Paragraph>
-        </div>
+        <FindingSection icon={Wrench} iconColor="#22C55E" label="Sugestão">
+          {finding.sugestao}
+        </FindingSection>
 
         {finding.evidencia && (
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Evidência:</Text>
+          <div style={{ marginTop: 4, marginLeft: 30 }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+              Evidência:
+            </Text>
             <Image
               src={`/api/screenshots/${finding.evidencia}`}
               alt="Evidência"
-              style={{ marginTop: 4, borderRadius: 4 }}
+              style={{ borderRadius: 6 }}
               width="100%"
             />
           </div>

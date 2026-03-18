@@ -1,5 +1,5 @@
 import { Form, Input, Button } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import { User, Mail, Lock } from 'lucide-react';
 
 const RegisterForm = ({ loading, onFinish }) => {
   return (
@@ -9,7 +9,7 @@ const RegisterForm = ({ loading, onFinish }) => {
         label="Nome"
         rules={[{ required: true, message: 'Informe seu nome.' }]}
       >
-        <Input prefix={<UserOutlined />} placeholder="Seu nome" />
+        <Input prefix={<User size={16} color="#9CA3AF" />} placeholder="Seu nome" />
       </Form.Item>
       <Form.Item
         name="email"
@@ -19,7 +19,7 @@ const RegisterForm = ({ loading, onFinish }) => {
           { type: 'email', message: 'Email inválido.' },
         ]}
       >
-        <Input prefix={<MailOutlined />} placeholder="seu@email.com" />
+        <Input prefix={<Mail size={16} color="#9CA3AF" />} placeholder="seu@email.com" />
       </Form.Item>
       <Form.Item
         name="password"
@@ -29,7 +29,7 @@ const RegisterForm = ({ loading, onFinish }) => {
           { min: 6, message: 'Mínimo de 6 caracteres.' },
         ]}
       >
-        <Input.Password prefix={<LockOutlined />} placeholder="Senha" />
+        <Input.Password prefix={<Lock size={16} color="#9CA3AF" />} placeholder="Senha" />
       </Form.Item>
       <Form.Item>
         <Button type="primary" htmlType="submit" block loading={loading}>

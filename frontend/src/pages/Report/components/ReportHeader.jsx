@@ -1,44 +1,41 @@
-import { Tag, Typography, Progress, Flex } from 'antd';
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
+import { Card, Typography, Flex } from 'antd';
+import { ExternalLink } from 'lucide-react';
+import StatusBadge from '../../../components/StatusBadge';
+import ScoreCircle from '../../../components/ScoreCircle';
 
 const { Title, Text, Paragraph } = Typography;
 
-const statusConfig = {
-  approved: { color: 'success', icon: <CheckCircleOutlined />, label: 'Aprovado' },
-  rejected: { color: 'error', icon: <CloseCircleOutlined />, label: 'Reprovado' },
-  needs_attention: { color: 'warning', icon: <ExclamationCircleOutlined />, label: 'Atenção Necessária' },
-};
-
-const ReportHeader = ({ aiAnalysis, consolidated }) => {
-  const config = statusConfig[aiAnalysis.overallStatus] || statusConfig.needs_attention;
-
+const ReportHeader = ({ aiAnalysis, consolidated, url }) => {
   return (
-    <Flex vertical gap="middle">
-      <Flex justify="space-between" align="center" wrap="wrap" gap="middle">
-        <Flex vertical>
-          <Title level={3} style={{ margin: 0 }}>Relatório da Análise</Title>
-          <Flex gap="small" align="center" style={{ marginTop: 8 }}>
-            <Tag icon={config.icon} color={config.color} style={{ fontSize: 14, padding: '4px 12px' }}>
-              {config.label}
-            </Tag>
-            <Text type="secondary">
-              {consolidated.summary.passed}/{consolidated.summary.totalTestCases} testes passaram
-            </Text>
+    <Card styles={{ body: { padding: '24px 28px' } }}>
+      <Flex vertical gap={16}>
+        <Flex justify="space-between" align="flex-start" wrap="wrap" gap="middle">
+          <Flex vertical gap={10} style={{ flex: 1 }}>
+            <Title level={3} style={{ margin: 0 }}>
+              Relatório da Análise
+            </Title>
+            {url && (
+              <Flex align="center" gap={6}>
+                <ExternalLink size={14} color="#9CA3AF" style={{ flexShrink: 0 }} />
+                <Text type="secondary" style={{ fontSize: 13 }} copyable={{ text: url }}>
+                  {url}
+                </Text>
+              </Flex>
+            )}
+            <Flex gap={8} align="center" style={{ marginTop: 2 }}>
+              <StatusBadge status={aiAnalysis.overallStatus} />
+              <Text type="secondary">
+                {consolidated.summary.passed}/{consolidated.summary.totalTestCases} testes passaram
+              </Text>
+            </Flex>
           </Flex>
+          <ScoreCircle score={aiAnalysis.overallScore} size={80} />
         </Flex>
-        <Progress
-          type="circle"
-          percent={aiAnalysis.overallScore}
-          size={80}
-          strokeColor={aiAnalysis.overallScore >= 80 ? '#52c41a' : aiAnalysis.overallScore >= 50 ? '#faad14' : '#ff4d4f'}
-        />
+        <Paragraph type="secondary" style={{ margin: 0, lineHeight: 1.6 }}>
+          {aiAnalysis.summary}
+        </Paragraph>
       </Flex>
-      <Paragraph type="secondary" style={{ margin: 0 }}>{aiAnalysis.summary}</Paragraph>
-    </Flex>
+    </Card>
   );
 };
 

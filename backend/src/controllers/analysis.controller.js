@@ -48,3 +48,23 @@ export const getAnalysis = async (req, res, next) => {
     next(error);
   }
 };
+
+export const listAnalyses = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const result = await analysisService.getUserAnalyses(req.user.id, { page, limit });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await analysisService.getUserStats(req.user.id);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    next(error);
+  }
+};

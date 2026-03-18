@@ -1,9 +1,5 @@
 import { Layout, Menu, Dropdown, Typography, Space, theme } from 'antd';
-import {
-  ExperimentOutlined,
-  LogoutOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { FlaskConical, LogOut, User, BarChart3 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 
@@ -25,15 +21,20 @@ const AppLayout = ({ children }) => {
   const menuItems = [
     {
       key: '/',
-      icon: <ExperimentOutlined />,
+      icon: <FlaskConical size={16} />,
       label: 'Nova Análise',
+    },
+    {
+      key: '/dashboard',
+      icon: <BarChart3 size={16} />,
+      label: 'Dashboard',
     },
   ];
 
   const userMenuItems = [
     {
       key: 'logout',
-      icon: <LogoutOutlined />,
+      icon: <LogOut size={16} />,
       label: 'Sair',
       onClick: handleLogout,
     },
@@ -48,22 +49,28 @@ const AppLayout = ({ children }) => {
           justifyContent: 'space-between',
           padding: '0 24px',
           background: themeToken.colorBgContainer,
-          borderBottom: `1px solid ${themeToken.colorBorderSecondary}`,
+          borderBottom: `1px solid ${themeToken.colorBorder}`,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          <Text strong style={{ fontSize: 18 }}>QAmatic</Text>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            onClick={() => navigate('/')}
+          >
+            <FlaskConical size={22} color="#2563EB" />
+            <Text strong style={{ fontSize: 18 }}>QAmatic</Text>
+          </div>
           <Menu
             mode="horizontal"
             selectedKeys={[location.pathname]}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
-            style={{ border: 'none', minWidth: 160 }}
+            style={{ border: 'none', minWidth: 260 }}
           />
         </div>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
-            <UserOutlined />
+            <User size={16} />
             <Text>{user?.name || 'Usuário'}</Text>
           </Space>
         </Dropdown>
